@@ -13,21 +13,32 @@ class ReversiStatus:
     """リバーシゲーム本体の状態すべてをコントロールするクラス"""
     __mStoneRowLen = 8
     __mStoneRowAmount = 8
-    __mStoneBuffer = list(__mStoneRowLen * __mStoneRowAmount) #リバーシ台
+    __mStoneBuffer = list([None] * __mStoneRowLen * __mStoneRowAmount) #リバーシ台
     __mCurrentTeamType = TeamType.BLACK
-
-    __mStoneBufferChangeLog = list()#[x, y, list[8]]
-
-    def __init__(self):
-        for i in range(0, len(list)):
-            self.__mStoneBuffer[i] = TeamType.NONE
-        return
+    __mBlackStoneAmount = 0
+    __mWhiteStoneAmount = 0
+      
+    def __str__(self):
+        outstr = "CurrentPlayer = " + str(self.__mCurrentTeamType) + "\n"
+        outstr += "x01234567\n"
+        for j in range(0, self.__mStoneRowAmount):
+            outstr += str(j)
+            for i in range(0, self.__mStoneRowLen):
+                stone = self.getStone(i,j)
+                if stone == TeamType.BLACK:
+                    outstr += "○"
+                elif stone == TeamType.WHITE:
+                    outstr += "●"
+                else:
+                    outstr += "□"
+            outstr += "\n"
+        return outstr
 
     def __getStoneIndex(self, x, y):
         """
         x,y座標から、リバーシ台上の石の位置を特定する\n
         戻り値:
-            int インデックス(失敗時-1)\n
+            int インデックス(失敗時None)\n
         入力:
             x,y: int型 座標\n
         \n
@@ -37,30 +48,14 @@ class ReversiStatus:
         if((x <= -1) | (self.__mStoneRowLen <= x) | (y <= -1) | (self.__mStoneRowLen <= y)):
             return None
         return x + y * self.__mStoneRowLen
+    
+    #初期化関連関数群
 
-    def checkPutable(self, x, y, aTeamType):
-        if self.getStone(x,y) != TeamType.NONE:
-            return False
-        ofsX = [-1,0,1,-1,1,-1,0,1]
-        ofsY = [-1,-1,-1,0,0,1,1,1]
-        for i in range(0,8):
-            bx = x
-            by = y
-            l = 0
-            while True:
-                bx = bx + ofsX[i]
-                by = by + ofsY[i]
-                stone = self.getStone(x,y)
-                if stone == None:
-                    return
-                elif stone == -aTeamType:
-                    l += 1
-                    break 
-                elif stone == aTeamType:
-                    if l >= 1:
-                        return True
-        return False
-
+    def __init__(self):
+        for i in range(0, len(self.__mStoneBuffer)):
+            self.__mStoneBuffer[i] = None
+        return    
+    
     def setStone(self, x, y, aTeamType):
         """
         リバーシ台上の石を強制的に変更する\n
@@ -72,8 +67,69 @@ class ReversiStatus:
         例外:\n
             IndexError: x,yが台の範囲外の時\n
         """
+        if self.getStone(x,y) == TeamType.WHITE:
+            self.__mWhiteStoneAmount -= 1
+        if aTeamType == TeamType.WHITE:
+            self.__mWhiteStoneAmount += 1
+        if self.getStone(x,y) == TeamType.BLACK:
+            self.__mBlackStoneAmount -= 1
+        if aTeamType == TeamType.BLACK:
+            self.__mBlackStoneAmount += 1
         self.__mStoneBuffer[self.__getStoneIndex(x,y)]  = aTeamType
- 
+    
+    def FillStone(self, aTeamType):
+        for j in range(0, self.__mStoneRowAmount):
+            for i in range(0, self.__mStoneRowLen):
+                self.setStone(i,j, None)
+
+    #操作関数群
+
+    def checkPutable(self, x, y, aTeamType):
+        """
+        指定された座標に石が置けるか確認する\n
+        戻り値:\n
+            bool 石が置けるかどうか\n
+        入力:\n
+            x,y: int型 座標
+            aTeamType: TeamType型 石を置くチーム
+        """
+        if self.getStone(x,y) != None:
+            return False
+        ofsX = [-1,0,1,-1,1,-1,0,1]
+        ofsY = [-1,-1,-1,0,0,1,1,1]
+        for i in range(0,8):
+            bx = x
+            by = y
+            l = 0
+            while True:
+                bx = bx + ofsX[i]
+                by = by + ofsY[i]
+                stone = self.getStone(bx,by)
+                if stone == None:
+                    break
+                elif stone == -aTeamType:
+                    l += 1
+                elif stone == aTeamType:
+                    if l >= 1:
+                        return True
+        return False
+
+    def getPutableList(self, aTeamType):
+        """
+        石のおけるすべての座標のリストを取得する\n
+        戻り値:\n
+            [[int, int], [int, int], ...]\n
+        入力:\n
+            x,y: int型 座標
+            aTeamType: TeamType型 変更する後のチーム(石をなくすにはTeamType.NONE)を指定する
+        """
+        putableList = list()
+        for j in range(0, self.__mStoneRowAmount):
+            for i in range(0, self.__mStoneRowLen):
+                if self.checkPutable(i,j,aTeamType):
+                    putableList.append([i,j])
+        return putableList
+
     def getStone(self, x, y):
         """
         リバーシ台上の石のチーム情報を取得する\n
@@ -84,11 +140,16 @@ class ReversiStatus:
         例外:\n
             IndexError: x,yが台の範囲外の時\n
         """
-        return  self.__mStoneBuffer[self.__getStoneIndex(x,y)]
+        index = self.__getStoneIndex(x,y)
+        if index == None:
+            return None
+        else:
+            return  self.__mStoneBuffer[index]
 
     def putStone(self, x, y):
         """
-        リバーシ台上の石を強制的に変更する\n
+        リバーシ台上にゲームルールにのっとり石を配置する\n
+        その後石を置く側を交代する\n
         戻り値:\n
             変更した長さint[8]\n
         入力:\n
@@ -128,7 +189,14 @@ class ReversiStatus:
         if noChange:
             return None
         self.setStone(x, y, self.__mCurrentTeamType)
-        self.__mStoneBufferChangeLog.append(self.__mStoneBuffer)
+        self.__mCurrentTeamType = -self.__mCurrentTeamType
         return revl
 
+    def getCurrentPlayer(self):
+        return self.__mCurrentTeamType
 
+    def getBlackStoneAmount(self):
+        return self.__mBlackStoneAmount
+
+    def getWhiteStoneAmount(self):
+         return self.__mWhiteStoneAmount
