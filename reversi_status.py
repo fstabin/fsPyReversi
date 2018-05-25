@@ -17,6 +17,7 @@ class ReversiStatus:
     __mCurrentTeamType = TeamType.BLACK
     __mBlackStoneAmount = 0
     __mWhiteStoneAmount = 0
+    __mDidPassBefore = 0
       
     def __str__(self):
         outstr = "CurrentPlayer = " + str(self.__mCurrentTeamType) + "\n"
@@ -56,6 +57,14 @@ class ReversiStatus:
             self.__mStoneBuffer[i] = None
         return    
     
+    
+    def FillStone(self, aTeamType):
+        for j in range(0, self.__mStoneRowAmount):
+            for i in range(0, self.__mStoneRowLen):
+                self.setStone(i,j, aTeamType)
+
+    #メンバを直接操作する関数群
+
     def setStone(self, x, y, aTeamType):
         """
         リバーシ台上の石を強制的に変更する\n
@@ -77,10 +86,12 @@ class ReversiStatus:
             self.__mBlackStoneAmount += 1
         self.__mStoneBuffer[self.__getStoneIndex(x,y)]  = aTeamType
     
-    def FillStone(self, aTeamType):
-        for j in range(0, self.__mStoneRowAmount):
-            for i in range(0, self.__mStoneRowLen):
-                self.setStone(i,j, None)
+    def changePlayer(self, DidCurrentPlayerPass):
+        self.__mCurrentTeamType = -self.__mCurrentTeamType
+        if(DidCurrentPlayerPass):
+            self.__mDidPassBefore += 1
+        else:
+            self.__mDidPassBefore = 0
 
     #操作関数群
 
@@ -151,7 +162,8 @@ class ReversiStatus:
         リバーシ台上にゲームルールにのっとり石を配置する\n
         その後石を置く側を交代する\n
         戻り値:\n
-            変更した長さint[8]\n
+            石が置けたとき　変更した長さint[8]\n
+            おけなかったとき None
         入力:\n
             x,y: int型 座標\n
             aTeamType: TeamType型 変更する後のチーム(石をなくすにはTeamType.NONE)を指定する\n
@@ -189,7 +201,7 @@ class ReversiStatus:
         if noChange:
             return None
         self.setStone(x, y, self.__mCurrentTeamType)
-        self.__mCurrentTeamType = -self.__mCurrentTeamType
+        self.changePlayer(False)
         return revl
 
     def getCurrentPlayer(self):
@@ -200,3 +212,9 @@ class ReversiStatus:
 
     def getWhiteStoneAmount(self):
          return self.__mWhiteStoneAmount
+
+    def isFineshed(self):
+        return self.__mDidPassBefore >= 2
+
+    def passPlayer(self):
+        self.changePlayer(True)

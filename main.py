@@ -7,17 +7,13 @@ status = ReversiStatus()
 status.FillStone(None)
 for l in stoneInitList:
     status.setStone(l[0], l[1], l[2])
-passed = 0
 
-while True:
+while not status.isFineshed():
     print(str(status))  #局面描画
     l = status.getPutableList(status.getCurrentPlayer())
     if len(l) == 0:
-        if passed == 1:
-            break
-        else:
-            passed += 1
-            continue
+        status.passPlayer()
+        continue
     uin = input(str(status.getCurrentPlayer()) + "?>>")
     if uin == "quit":
         break
@@ -27,9 +23,8 @@ while True:
             x = int(input("x?>>"))
             y = int(input("y?>>"))
         except ValueError:
-            print("where?(please input int value)")
-            x = int(input("x?>>"))
-            y = int(input("y?>>"))
+            print("please input int value")
+            continue
         status.putStone(x,y)
 
 print("result")
@@ -45,3 +40,5 @@ elif b < w:
 else:
     winner = "Draw"
 print("Winner = " + winner)
+
+input("Enterで終了>>")
