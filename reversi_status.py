@@ -1,4 +1,5 @@
 from enum import Enum
+
 class TeamType(Enum):
     BLACK = 1
     WHITE = -1
