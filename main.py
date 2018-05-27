@@ -12,8 +12,9 @@ for l in stoneInitList:
     status.setStone(l[0], l[1], l[2])
 
 mPlayers = {    
-    TeamType.BLACK: reversi_ai.ReversiAI(3),
-    TeamType.WHITE: reversi_ai.ReversiAI(1)
+    TeamType.BLACK: reversi_ai.MonteCarlo(8,2),
+    #TeamType.BLACK: reversi_ai.MonteCarlo(5,5),
+    TeamType.WHITE: reversi_ai.AlphaBeta(4)
     }
 
 while not status.isFineshed():
@@ -35,6 +36,7 @@ while not status.isFineshed():
             status.doOver()
             status.doOver()
 
+print(str(status))
 print("result")
 b = status.getBlackStoneAmount()
 w = status.getWhiteStoneAmount()
